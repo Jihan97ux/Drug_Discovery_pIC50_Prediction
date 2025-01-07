@@ -1,135 +1,61 @@
+import mlflow
 import pandas as pd
 import numpy as np
-import mlflow
+from sklearn.preprocessing import KBinsDiscretizer
 
-def create_bins(data, n_bins=10):
-    """Create bins using percentile method"""
-    print(n_bins)
-    bins = np.percentile(data, np.linspace(0, 100, n_bins + 1))
-    return bins
+mlflow.set_tracking_uri("http://127.0.0.1:5000")  # MLflow Tracking URI
 
-def get_distributions(expected, actual, bins):
-    """Calculate % distribution for each dataset"""
-    expected_dist = np.histogram(expected, bins)[0] / len(expected)
-    actual_dist = np.histogram(actual, bins)[0] / len(actual)
+# Fungsi untuk menghitung PSI
+def calculate_psi(expected, actual, bins=10):
+    # Discretize kedua distribusi
+    discretizer = KBinsDiscretizer(n_bins=bins, encode='ordinal', strategy='uniform')
+    expected_binned = discretizer.fit_transform(expected.reshape(-1, 1)).astype(int)
+    actual_binned = discretizer.transform(actual.reshape(-1, 1)).astype(int)
+
+    # Hitung frekuensi
+    expected_freq = np.bincount(expected_binned.flatten(), minlength=bins) / len(expected)
+    actual_freq = np.bincount(actual_binned.flatten(), minlength=bins) / len(actual)
+
+    # Tambahkan epsilon untuk mencegah pembagian nol
+    epsilon = 1e-10
+    expected_freq = np.maximum(expected_freq, epsilon)
+    actual_freq = np.maximum(actual_freq, epsilon)
+
+    # Hitung PSI
+    psi_value = np.sum((actual_freq - expected_freq) * np.log(actual_freq / expected_freq))
+    return psi_value
+
+# Fungsi untuk mendeteksi drift pada model
+def detect_drift(dataset_path):
+    # Membaca dataset
+    data = pd.read_csv(dataset_path)
     
-    # Add small epsilon to avoid division by zero
-    expected_dist = np.clip(expected_dist, 1e-8, None)
-    actual_dist = np.clip(actual_dist, 1e-8, None)
+    # Misalnya kita ingin mendeteksi drift pada kolom 'Feature'
+    expected_feature = data['Actual_pIC50'].values  # Data training atau distribusi ekspektasi
+    actual_feature = data['Predicted_pIC50'].values  # Data baru (data yang diuji untuk drift)
+
+    # Hitung PSI
+    psi_value = calculate_psi(expected_feature, actual_feature)
     
-    return expected_dist, actual_dist
+    # Log PSI ke MLflow sebagai metrik
+    mlflow.log_metric('PSI_Value', psi_value)
 
-def calculate_psi(expected_dist, actual_dist):
-    """Calculate PSI value"""
-    print(actual_dist)
-    print(expected_dist)
-    print(actual_dist - expected_dist)
-    print(np.log(actual_dist / expected_dist))
+    # Tentukan tingkat drift
+    if psi_value < 0.1:
+        drift_status = 'No drift'
+    elif 0.1 <= psi_value < 0.2:
+        drift_status = 'Moderate drift'
+    else:
+        drift_status = 'High drift'
 
-    psi = np.sum(
-        (actual_dist - expected_dist) * 
-        np.log(actual_dist / expected_dist)
-    )
-    return psi
-
-# def detect_drift_psi(expected_dataset, actual_dataset, n_bins=10):
-#     """Complete PSI calculation  for each feature"""
-#     drift_metrics = {}
-#     for column in expected_dataset.columns:
-#         if column != 'churn':
-#             expected_data = expected_dataset[column]
-#             actual_data = actual_dataset[column]
-
-#             bins = create_bins(expected_data, n_bins)
-            
-#             # Get distributions
-#             expected_dist, actual_dist = get_distributions(
-#                 expected_data, actual_data, bins
-#             )
-            
-#             # Calculate PSI
-#             psi_value = calculate_psi(expected_dist, actual_dist)
-
-#             drift_metrics[f"{column}_psi"] = psi_value
-            
-#     # Determine if drift is significant (PSI > 0.2 is considered significant)
-#     drift_check = any(v > 0.1 and v <= 0.2 for v in drift_metrics.values())
-#     mlflow.log_param("drift_needs_check", drift_check)
-    
-#     drift_detected = any(v > 0.2 for v in drift_metrics.values())
-#     mlflow.log_param("drift_detected", drift_detected)
-    
-#     return drift_metrics, drift_detected
-
-
-def calculate_psi_column(expected_data, actual_data, column_name, n_bins=10):
-    """Complete PSI calculation  for each feature"""
-
-    bins = create_bins(expected_data, n_bins)
-    
-    # Get distributions
-    expected_dist, actual_dist = get_distributions(
-        expected_data, actual_data, bins
-    )
-    
-    # Calculate PSI
-    psi_value = calculate_psi(expected_dist, actual_dist)
-    
-    return psi_value, bins, expected_dist, actual_dist
-
-def train_and_monitor_drift():
-    # Start MLflow run
-    with mlflow.start_run(run_name="model_with_drift_detection") as run:
-              # Load data
-        train_data = pd.read_csv('C:/Users/user/tugas/Semester_V/data_models/mlops/data/train.csv')
-        new_data = pd.read_csv('C:/Users/user/tugas/Semester_V/data_models/mlops/data/train.csv')
-        
-        # Calculate and log PSI for each feature
-        drift_metrics = {}
-        drift_detected = False
-        
-        for column in train_data.columns:
-            psi_value, bins, expected_dist, actual_dist = calculate_psi_column(
-                train_data[column], 
-                new_data[column],
-                column
-            )
-            
-            # Log PSI value
-            drift_metrics[f"psi_{column}"] = psi_value
-            
-            # Check if drift detected
-            if psi_value >= 0.1:
-                drift_detected = True
-                
-            # Log distribution data as artifacts
-            dist_df = pd.DataFrame({
-                'bins': bins[:-1],
-                'expected_dist': expected_dist,
-                'actual_dist': actual_dist
-            })
-            dist_df.to_csv(f'distribution_{column}.csv', index=False)
-            mlflow.log_artifact(f'distribution_{column}.csv')
-        
-        # Log overall drift metrics
-        mlflow.log_metrics(drift_metrics)
-        
-        # Log drift status as parameter
-        mlflow.log_param("drift_detected", drift_detected)
-        
-        return run.info.run_id, drift_metrics, drift_detected
-
+    print(f"PSI: {psi_value}, Drift Status: {drift_status}")
+    return psi_value, drift_status
 
 if __name__ == "__main__":
-    mlflow.set_tracking_uri("http://localhost:5000")
-    mlflow.set_experiment("drift_detection_demo")
-    
-    run_id, drift_metrics, has_drift = train_and_monitor_drift()
-    
-    print("\nDrift Detection Results:")
-    print("-" * 50)
-    print(f"Run ID: {run_id}")
-    print("\nPSI Values:")
-    for metric, value in drift_metrics.items():
-        print(f"{metric}: {value:.4f}")
-    print(f"\nDrift Detected: {has_drift}")
+    # Path dataset
+    dataset_path = 'C:/Users/user/tugas/Semester_V/data_models/mlops/src/predictions_RandomForest.csv'  # Sesuaikan path dataset Anda
+    mlflow.set_experiment("pIC50_prediction")
+    # Mulai MLflow Run
+    with mlflow.start_run():
+        psi_value, drift_status = detect_drift(dataset_path)
+        print(f"Drift detection completed with PSI: {psi_value} and status: {drift_status}")
