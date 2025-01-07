@@ -81,8 +81,8 @@ def train_and_monitor_drift():
     # Start MLflow run
     with mlflow.start_run(run_name="model_with_drift_detection") as run:
               # Load data
-        train_data = pd.read_csv('data/train.csv')
-        new_data = pd.read_csv('data/new_data.csv')
+        train_data = pd.read_csv('C:/Users/user/tugas/Semester_V/data_models/mlops/data/train.csv')
+        new_data = pd.read_csv('C:/Users/user/tugas/Semester_V/data_models/mlops/data/train.csv')
         
         # Calculate and log PSI for each feature
         drift_metrics = {}

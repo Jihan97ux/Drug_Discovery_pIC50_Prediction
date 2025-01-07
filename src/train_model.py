@@ -60,7 +60,7 @@ def train_and_log_model(data_path, str_model_type):
 if __name__ == "__main__":
     mlflow.set_tracking_uri("http://localhost:5000")
     mlflow.set_experiment("churn_prediction")
-    run_id_rf = train_and_log_model("data/train.csv",'RandomForest')
-    run_id_lr = train_and_log_model("data/train.csv",'LogisticRegression')
+    run_id_rf = train_and_log_model("C:/Users/user/tugas/Semester_V/data_models/mlops/data/train.csv",'RandomForest')
+    run_id_lr = train_and_log_model("C:/Users/user/tugas/Semester_V/data_models/mlops/data/train.csv",'LogisticRegression')
     print(f"Model trained and logged with run_id: {run_id_rf}")
     print(f"Model trained and logged with run_id: {run_id_lr}")
