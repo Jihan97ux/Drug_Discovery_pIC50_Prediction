@@ -51,11 +51,15 @@ To ensure long-term reliability, **Population Stability Index (PSI)** was used:
 - To mitigate drift, regular model updates and data monitoring are required.  
 - **MLflow Drift Detector** was used to analyze prediction stability over time.
 
+---
+
 ## Prerequisites
 - Python 3.9 or higher
 - Git
 - Basic understanding of Machine Learning concepts
 - Basic understanding of command line operations
+
+---
 
 ## Setup Instructions
 
@@ -85,6 +89,7 @@ source mlops/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
+---
 
 ## Start 
 
