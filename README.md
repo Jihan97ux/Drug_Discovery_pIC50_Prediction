@@ -5,8 +5,7 @@
 📧 Email: jihan4han97@gmail.com  
 
 ## Overview  
-This project focuses on two key machine learning experiments:  
- **pIC50 Prediction** using regression models for drug discovery.  
+This project focuses on **pIC50 Prediction** using regression models for drug discovery.  
 Experiments are logged and monitored using **MLflow**.  
 
 ## Dataset Preparation  
