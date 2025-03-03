@@ -1,5 +1,57 @@
 # Model Logging and Tracking with MLflow
 
+## Author  
+**Jihan Fadila**   
+📧 Email: jihan4han97@gmail.com  
+
+## Overview  
+This project focuses on two key machine learning experiments:  
+ **pIC50 Prediction** using regression models for drug discovery.  
+Experiments are logged and monitored using **MLflow**.  
+
+## Dataset Preparation  
+- The dataset consists of **3,068 aromatase inhibitor compounds**.  
+- Features are generated from **canonical SMILES** using **PaDEL Descriptor**, resulting in **307 molecular fingerprints**.  
+
+### **Tools Used**  
+- **Google Colab** for model training  
+- **PaDEL Descriptor** for feature extraction  
+- **VS Code & MLflow** for logging and monitoring  
+
+## pIC50 Prediction  
+pIC50 is a **continuous variable**, so **regression models** were used:  
+- **Linear Regression**  
+- **Random Forest Regressor**  
+- **Neural Network**  
+
+### **Evaluation Metrics**  
+- **Mean Squared Error (MSE)**  
+- **R-Squared (R²)**  
+- **Root Mean Squared Error (RMSE)**  
+
+### **Model Comparison**  
+| Model  | MSE  | R² | RMSE |
+|--------|------|------|------|
+| **Random Forest** | **1.261** | **0.328** | **1.233** |
+| Neural Network | 1.565 | 0.166 | 1.251 |
+| Linear Regression | **16.7575** | **-7.9294** | **4.0936** |
+
+**Findings:**  
+- **Random Forest performed the best**, explaining more variance in the data.  
+- **Neural Network showed stability**, but slightly underperformed compared to Random Forest.  
+- **Linear Regression had the worst performance**, indicating the dataset requires more complex models.  
+
+## Drift Detection & Model Selection  
+To ensure long-term reliability, **Population Stability Index (PSI)** was used:  
+- **Neural Network PSI: 0.26** (Moderate drift, stable)  
+- **Random Forest PSI: 4.85** (High drift, significant data shift)  
+- **Linear Regression PSI: 0.39** (Moderate drift)  
+
+**Conclusion:**  
+- **Random Forest was chosen as the best model** due to superior performance.  
+- To mitigate drift, regular model updates and data monitoring are required.  
+- **MLflow Drift Detector** was used to analyze prediction stability over time.
+
 ## Prerequisites
 - Python 3.9 or higher
 - Git
